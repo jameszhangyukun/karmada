@@ -10,6 +10,7 @@ import (
 
 	configv1alpha1 "github.com/karmada-io/karmada/pkg/apis/config/v1alpha1"
 	workv1alpha2 "github.com/karmada-io/karmada/pkg/apis/work/v1alpha2"
+	"github.com/karmada-io/karmada/pkg/resourceinterpreter/configurableinterpreter"
 	"github.com/karmada-io/karmada/pkg/resourceinterpreter/customizedinterpreter"
 	"github.com/karmada-io/karmada/pkg/resourceinterpreter/customizedinterpreter/webhook"
 	"github.com/karmada-io/karmada/pkg/resourceinterpreter/defaultinterpreter"
@@ -60,8 +61,9 @@ type customResourceInterpreterImpl struct {
 	kubeconfig string
 	informer   genericmanager.SingleClusterInformerManager
 
-	customizedInterpreter *customizedinterpreter.CustomizedInterpreter
-	defaultInterpreter    *defaultinterpreter.DefaultInterpreter
+	customizedInterpreter   *customizedinterpreter.CustomizedInterpreter
+	defaultInterpreter      *defaultinterpreter.DefaultInterpreter
+	configurableInterpreter *configurableinterpreter.ConfigurableInterpreter
 }
 
 // Start starts running the component and will never stop running until the context is closed or an error occurs.

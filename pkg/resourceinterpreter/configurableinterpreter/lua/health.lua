@@ -1,0 +1,1 @@
+return (object.status.updatedReplicas == object.spec.replicas) and (object.metadata.generation == object.status.observedGeneration)
