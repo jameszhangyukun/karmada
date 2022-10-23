@@ -10,6 +10,7 @@ import (
 
 	configv1alpha1 "github.com/karmada-io/karmada/pkg/apis/config/v1alpha1"
 	workv1alpha2 "github.com/karmada-io/karmada/pkg/apis/work/v1alpha2"
+	"github.com/karmada-io/karmada/pkg/resourceinterpreter/configurableinterpreter"
 	"github.com/karmada-io/karmada/pkg/resourceinterpreter/customizedinterpreter"
 	"github.com/karmada-io/karmada/pkg/resourceinterpreter/customizedinterpreter/webhook"
 	"github.com/karmada-io/karmada/pkg/resourceinterpreter/defaultinterpreter"
@@ -58,8 +59,9 @@ func NewResourceInterpreter(informer genericmanager.SingleClusterInformerManager
 type customResourceInterpreterImpl struct {
 	informer genericmanager.SingleClusterInformerManager
 
-	customizedInterpreter *customizedinterpreter.CustomizedInterpreter
-	defaultInterpreter    *defaultinterpreter.DefaultInterpreter
+	customizedInterpreter   *customizedinterpreter.CustomizedInterpreter
+	defaultInterpreter      *defaultinterpreter.DefaultInterpreter
+	configurableInterpreter *configurableinterpreter.ConfigurableInterpreter
 }
 
 // Start starts running the component and will never stop running until the context is closed or an error occurs.
@@ -70,6 +72,8 @@ func (i *customResourceInterpreterImpl) Start(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+	klog.Infof("Starting custom resource interpreter.")
+	i.configurableInterpreter, err = configurableinterpreter.NewConfigurableInterpreter(i.informer)
 
 	i.defaultInterpreter = defaultinterpreter.NewDefaultInterpreter()
 
@@ -82,7 +86,7 @@ func (i *customResourceInterpreterImpl) Start(ctx context.Context) (err error) {
 // HookEnabled tells if any hook exist for specific resource type and operation.
 func (i *customResourceInterpreterImpl) HookEnabled(objGVK schema.GroupVersionKind, operation configv1alpha1.InterpreterOperation) bool {
 	return i.customizedInterpreter.HookEnabled(objGVK, operation) ||
-		i.defaultInterpreter.HookEnabled(objGVK, operation)
+		i.defaultInterpreter.HookEnabled(objGVK, operation) || i.configurableInterpreter.HookEnabled(objGVK, operation)
 }
 
 // GetReplicas returns the desired replicas of the object as well as the requirements of each replica.
@@ -98,6 +102,11 @@ func (i *customResourceInterpreterImpl) GetReplicas(object *unstructured.Unstruc
 		return
 	}
 	if hookEnabled {
+		return
+	}
+
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		replica, requires, err = i.configurableInterpreter.GetReplicas(object)
 		return
 	}
 
@@ -120,7 +129,9 @@ func (i *customResourceInterpreterImpl) ReviseReplica(object *unstructured.Unstr
 	if hookEnabled {
 		return obj, nil
 	}
-
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.ReviseReplica(object, replica)
+	}
 	return i.defaultInterpreter.ReviseReplica(object, replica)
 }
 
@@ -139,7 +150,9 @@ func (i *customResourceInterpreterImpl) Retain(desired *unstructured.Unstructure
 	if hookEnabled {
 		return obj, nil
 	}
-
+	if i.configurableInterpreter.CheckConfigurableExists(desired.GroupVersionKind()) {
+		return i.configurableInterpreter.Retain(desired, observed)
+	}
 	return i.defaultInterpreter.Retain(desired, observed)
 }
 
@@ -159,6 +172,9 @@ func (i *customResourceInterpreterImpl) AggregateStatus(object *unstructured.Uns
 		return obj, nil
 	}
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.AggregateStatus(object, aggregatedStatusItems)
+	}
 	return i.defaultInterpreter.AggregateStatus(object, aggregatedStatusItems)
 }
 
@@ -177,6 +193,10 @@ func (i *customResourceInterpreterImpl) GetDependencies(object *unstructured.Uns
 		return
 	}
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		dependencies, err = i.configurableInterpreter.GetDependencies(object)
+		return
+	}
 	dependencies, err = i.defaultInterpreter.GetDependencies(object)
 	return
 }
@@ -196,6 +216,10 @@ func (i *customResourceInterpreterImpl) ReflectStatus(object *unstructured.Unstr
 		return
 	}
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		status, err = i.configurableInterpreter.ReflectStatus(object)
+		return
+	}
 	status, err = i.defaultInterpreter.ReflectStatus(object)
 	return
 }
@@ -215,6 +239,10 @@ func (i *customResourceInterpreterImpl) InterpretHealth(object *unstructured.Uns
 		return
 	}
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		healthy, err = i.configurableInterpreter.InterpretHealth(object)
+		return
+	}
 	healthy, err = i.defaultInterpreter.InterpretHealth(object)
 	return
 }
