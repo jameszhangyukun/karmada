@@ -2,6 +2,8 @@ package configmanager
 
 import (
 	"fmt"
+	"github.com/karmada-io/karmada/pkg/util/helper"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sync/atomic"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -24,7 +26,7 @@ var resourceInterpreterCustomizationsGVR = schema.GroupVersionResource{
 type InterpreterConfigManager struct {
 	initialSynced *atomic.Value
 	lister        cache.GenericLister
-	ConfigCache   map[schema.GroupVersionKind]configv1alpha1.LocalValueRetention
+	configuration *atomic.Value
 }
 
 // HasSynced return true when the manager is synced with existing configuration.
@@ -55,78 +57,47 @@ func NewInterpreterConfigManager(inform genericmanager.SingleClusterInformerMana
 	manager := InterpreterConfigManager{
 		lister:        inform.Lister(resourceInterpreterCustomizationsGVR),
 		initialSynced: &atomic.Value{},
-		ConfigCache:   make(map[schema.GroupVersionKind]configv1alpha1.LocalValueRetention, 0),
+		configuration: &atomic.Value{},
 	}
+	manager.configuration.Store(make(map[schema.GroupVersionKind]*configv1alpha1.ResourceInterpreterCustomization))
 	manager.initialSynced.Store(false)
 	configHandlers := fedinformer.NewHandlerOnEvents(
-		func(obj interface{}) { manager.addResourceInterpreterCustomizations(obj) },
-		func(oldObj, newObj interface{}) { manager.updateResourceInterpreterCustomizations(oldObj, newObj) },
-		func(obj interface{}) { manager.deleteResourceInterpreterCustomizations(obj) })
+		func(_ interface{}) { manager.updateConfiguration() },
+		func(_, _ interface{}) { manager.updateConfiguration() },
+		func(_ interface{}) { manager.updateConfiguration() })
 	inform.ForResource(resourceInterpreterCustomizationsGVR, configHandlers)
-
 	return manager
 }
 
-func (configManager *InterpreterConfigManager) addResourceInterpreterCustomizations(obj interface{}) {
+func (configManager *InterpreterConfigManager) updateConfiguration() {
+
 	configurations, err := configManager.lister.List(labels.Everything())
-	fmt.Printf(" configurations %v  \n", configurations)
-	fmt.Printf("configurations err %v \n", err)
-	fmt.Printf("obj %v", obj)
-	resourceInterpreterCustomization, ok := obj.(*configv1alpha1.ResourceInterpreterCustomization)
-	if !ok {
-		klog.Errorf("Cannot convert to resourceInterpreterCustomization: %v", obj)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("error updating configuration: %v", err))
 		return
 	}
-	klog.Infof("Receiving add event for resourceInterpreterCustomization %s", resourceInterpreterCustomization.Name)
-	cacheKey := schema.GroupVersionKind{
-		Version: resourceInterpreterCustomization.Spec.APIVersion,
-		Kind:    resourceInterpreterCustomization.Spec.Kind,
-	}
-	configManager.ConfigCache[cacheKey] = resourceInterpreterCustomization.Spec.Retention
-}
+	configs := make(map[schema.GroupVersionKind]*configv1alpha1.ResourceInterpreterCustomization, 0)
 
-func (configManager *InterpreterConfigManager) updateResourceInterpreterCustomizations(_, newObj interface{}) {
-	configurations, err := configManager.lister.List(labels.Everything())
-	fmt.Printf(" configurations %v  \n", configurations)
-	fmt.Printf("configurations err %v \n", err)
-	fmt.Printf("obj %v", newObj)
-	resourceInterpreterCustomization, ok := newObj.(*configv1alpha1.ResourceInterpreterCustomization)
-	if !ok {
-		klog.Errorf("Cannot convert to resourceInterpreterCustomization: %v", newObj)
-		return
-	}
-	klog.Infof("Receiving update event for resourceInterpreterCustomization %s", resourceInterpreterCustomization.Name)
-	cacheKey := schema.GroupVersionKind{
-		Version: resourceInterpreterCustomization.Spec.APIVersion,
-		Kind:    resourceInterpreterCustomization.Spec.Kind,
-	}
-	configManager.ConfigCache[cacheKey] = resourceInterpreterCustomization.Spec.Retention
-}
-
-func (configManager *InterpreterConfigManager) deleteResourceInterpreterCustomizations(obj interface{}) {
-	configurations, err := configManager.lister.List(labels.Everything())
-	fmt.Printf(" configurations %v  \n", configurations)
-	fmt.Printf("configurations err %v \n", err)
-	fmt.Printf("obj %v", obj)
-	var resourceInterpreterCustomization *configv1alpha1.ResourceInterpreterCustomization
-	switch t := obj.(type) {
-	case *configv1alpha1.ResourceInterpreterCustomization:
-		resourceInterpreterCustomization = t
-	case cache.DeletedFinalStateUnknown:
-		var ok bool
-		resourceInterpreterCustomization, ok = t.Obj.(*configv1alpha1.ResourceInterpreterCustomization)
-		if !ok {
-			klog.Errorf("Cannot convert to configv1alpha1.ResourceInterpreterCustomization: %v", t.Obj)
+	for _, c := range configurations {
+		unstructuredConfig, err := helper.ToUnstructured(c)
+		if err != nil {
+			klog.Errorf("Failed to transform ResourceInterpreterWebhookConfiguration: %w", err)
 			return
 		}
-	default:
-		klog.Errorf("Cannot convert to configv1alpha1.ResourceInterpreterCustomization %v", t)
-		return
+		config := &configv1alpha1.ResourceInterpreterCustomization{}
+		err = helper.ConvertToTypedObject(unstructuredConfig, config)
+		key := schema.GroupVersionKind{
+			Version: config.Spec.APIVersion,
+			Kind:    config.Spec.Kind,
+		}
+		configs[key] = config
 	}
-	klog.Infof("Receiving delete event for resourceInterpreterCustomization %s", resourceInterpreterCustomization.Name)
-	cacheKey := schema.GroupVersionKind{
-		Version: resourceInterpreterCustomization.Spec.APIVersion,
-		Kind:    resourceInterpreterCustomization.Spec.Kind,
-	}
-	delete(configManager.ConfigCache, cacheKey)
+
+	configManager.configuration.Store(configs)
+	configManager.initialSynced.Store(true)
+}
+
+func (configManager *InterpreterConfigManager) GetResourceInterpreterCustomization(gvk schema.GroupVersionKind) *configv1alpha1.ResourceInterpreterCustomization {
+	m := configManager.configuration.Load().(map[schema.GroupVersionKind]*configv1alpha1.ResourceInterpreterCustomization)
+	return m[gvk]
 }
