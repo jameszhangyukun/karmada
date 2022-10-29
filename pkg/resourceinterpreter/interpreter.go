@@ -2,6 +2,7 @@ package resourceinterpreter
 
 import (
 	"context"
+	"github.com/karmada-io/karmada/pkg/resourceinterpreter/configurableinterpreter"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,18 +59,21 @@ func NewResourceInterpreter(informer genericmanager.SingleClusterInformerManager
 type customResourceInterpreterImpl struct {
 	informer genericmanager.SingleClusterInformerManager
 
-	customizedInterpreter *customizedinterpreter.CustomizedInterpreter
-	defaultInterpreter    *defaultinterpreter.DefaultInterpreter
+	customizedInterpreter   *customizedinterpreter.CustomizedInterpreter
+	defaultInterpreter      *defaultinterpreter.DefaultInterpreter
+	configurableInterpreter *configurableinterpreter.ConfigurableInterpreter
 }
 
 // Start starts running the component and will never stop running until the context is closed or an error occurs.
 func (i *customResourceInterpreterImpl) Start(ctx context.Context) (err error) {
 	klog.Infof("Starting custom resource interpreter.")
-
 	i.customizedInterpreter, err = customizedinterpreter.NewCustomizedInterpreter(i.informer)
 	if err != nil {
 		return
 	}
+
+	klog.Infof("Starting custom configurable interpreter.")
+	i.configurableInterpreter, err = configurableinterpreter.NewConfigurableInterpreter(i.informer)
 
 	i.defaultInterpreter = defaultinterpreter.NewDefaultInterpreter()
 
