@@ -2,6 +2,7 @@ package configmanager
 
 import (
 	configv1alpha1 "github.com/karmada-io/karmada/pkg/apis/config/v1alpha1"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 

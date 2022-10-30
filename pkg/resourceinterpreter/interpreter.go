@@ -86,12 +86,16 @@ func (i *customResourceInterpreterImpl) Start(ctx context.Context) (err error) {
 // HookEnabled tells if any hook exist for specific resource type and operation.
 func (i *customResourceInterpreterImpl) HookEnabled(objGVK schema.GroupVersionKind, operation configv1alpha1.InterpreterOperation) bool {
 	return i.customizedInterpreter.HookEnabled(objGVK, operation) ||
-		i.defaultInterpreter.HookEnabled(objGVK, operation)
+		i.defaultInterpreter.HookEnabled(objGVK, operation) || i.configurableInterpreter.HookEnabled(objGVK, operation)
 }
 
 // GetReplicas returns the desired replicas of the object as well as the requirements of each replica.
 func (i *customResourceInterpreterImpl) GetReplicas(object *unstructured.Unstructured) (replica int32, requires *workv1alpha2.ReplicaRequirements, err error) {
 	klog.V(4).Infof("Begin to get replicas for request object: %v %s/%s.", object.GroupVersionKind(), object.GetNamespace(), object.GetName())
+
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.GetReplicas(object)
+	}
 
 	var hookEnabled bool
 	replica, requires, hookEnabled, err = i.customizedInterpreter.GetReplicas(context.TODO(), &webhook.RequestAttributes{
@@ -113,6 +117,10 @@ func (i *customResourceInterpreterImpl) GetReplicas(object *unstructured.Unstruc
 func (i *customResourceInterpreterImpl) ReviseReplica(object *unstructured.Unstructured, replica int64) (*unstructured.Unstructured, error) {
 	klog.V(4).Infof("Begin to revise replicas for object: %v %s/%s.", object.GroupVersionKind(), object.GetNamespace(), object.GetName())
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.ReviseReplica(object, replica)
+	}
+
 	obj, hookEnabled, err := i.customizedInterpreter.Patch(context.TODO(), &webhook.RequestAttributes{
 		Operation:   configv1alpha1.InterpreterOperationReviseReplica,
 		Object:      object,
@@ -131,6 +139,10 @@ func (i *customResourceInterpreterImpl) ReviseReplica(object *unstructured.Unstr
 // Retain returns the objects that based on the "desired" object but with values retained from the "observed" object.
 func (i *customResourceInterpreterImpl) Retain(desired *unstructured.Unstructured, observed *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	klog.V(4).Infof("Begin to retain object: %v %s/%s.", desired.GroupVersionKind(), desired.GetNamespace(), desired.GetName())
+
+	if i.configurableInterpreter.CheckConfigurableExists(desired.GroupVersionKind()) {
+		return i.configurableInterpreter.Retain(desired, observed)
+	}
 
 	obj, hookEnabled, err := i.customizedInterpreter.Patch(context.TODO(), &webhook.RequestAttributes{
 		Operation:   configv1alpha1.InterpreterOperationRetain,
@@ -151,6 +163,10 @@ func (i *customResourceInterpreterImpl) Retain(desired *unstructured.Unstructure
 func (i *customResourceInterpreterImpl) AggregateStatus(object *unstructured.Unstructured, aggregatedStatusItems []workv1alpha2.AggregatedStatusItem) (*unstructured.Unstructured, error) {
 	klog.V(4).Infof("Begin to aggregate status for object: %v %s/%s.", object.GroupVersionKind(), object.GetNamespace(), object.GetName())
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.AggregateStatus(object, aggregatedStatusItems)
+	}
+
 	obj, hookEnabled, err := i.customizedInterpreter.Patch(context.TODO(), &webhook.RequestAttributes{
 		Operation:        configv1alpha1.InterpreterOperationAggregateStatus,
 		Object:           object.DeepCopy(),
@@ -169,6 +185,10 @@ func (i *customResourceInterpreterImpl) AggregateStatus(object *unstructured.Uns
 // GetDependencies returns the dependent resources of the given object.
 func (i *customResourceInterpreterImpl) GetDependencies(object *unstructured.Unstructured) (dependencies []configv1alpha1.DependentObjectReference, err error) {
 	klog.V(4).Infof("Begin to get dependencies for object: %v %s/%s.", object.GroupVersionKind(), object.GetNamespace(), object.GetName())
+
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.GetDependencies(object)
+	}
 
 	dependencies, hookEnabled, err := i.customizedInterpreter.GetDependencies(context.TODO(), &webhook.RequestAttributes{
 		Operation: configv1alpha1.InterpreterOperationInterpretDependency,
@@ -189,6 +209,10 @@ func (i *customResourceInterpreterImpl) GetDependencies(object *unstructured.Uns
 func (i *customResourceInterpreterImpl) ReflectStatus(object *unstructured.Unstructured) (status *runtime.RawExtension, err error) {
 	klog.V(4).Infof("Begin to grab status for object: %v %s/%s.", object.GroupVersionKind(), object.GetNamespace(), object.GetName())
 
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.ReflectStatus(object)
+	}
+
 	status, hookEnabled, err := i.customizedInterpreter.ReflectStatus(context.TODO(), &webhook.RequestAttributes{
 		Operation: configv1alpha1.InterpreterOperationInterpretStatus,
 		Object:    object,
@@ -207,6 +231,10 @@ func (i *customResourceInterpreterImpl) ReflectStatus(object *unstructured.Unstr
 // InterpretHealth returns the health state of the object.
 func (i *customResourceInterpreterImpl) InterpretHealth(object *unstructured.Unstructured) (healthy bool, err error) {
 	klog.V(4).Infof("Begin to check health for object: %v %s/%s.", object.GroupVersionKind(), object.GetNamespace(), object.GetName())
+
+	if i.configurableInterpreter.CheckConfigurableExists(object.GroupVersionKind()) {
+		return i.configurableInterpreter.InterpretHealth(object)
+	}
 
 	healthy, hookEnabled, err := i.customizedInterpreter.InterpretHealth(context.TODO(), &webhook.RequestAttributes{
 		Operation: configv1alpha1.InterpreterOperationInterpretHealth,

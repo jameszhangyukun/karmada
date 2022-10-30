@@ -94,10 +94,7 @@ func (configManager *interpreterConfigManager) updateConfiguration() {
 		}
 		config := &configv1alpha1.ResourceInterpreterCustomization{}
 		err = helper.ConvertToTypedObject(unstructuredConfig, config)
-		key := schema.GroupVersionKind{
-			Version: config.Spec.Target.APIVersion,
-			Kind:    config.Spec.Target.Kind,
-		}
+		key := schema.FromAPIVersionAndKind(config.Spec.Target.APIVersion, config.Spec.Target.Kind)
 		configs[key] = NewResourceCustomAccessorAccessor(config)
 	}
 
