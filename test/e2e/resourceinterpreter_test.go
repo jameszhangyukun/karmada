@@ -441,7 +441,7 @@ end`,
 					ReplicaRevision: &configv1alpha1.ReplicaRevision{
 						LuaScript: `function Retain(desiredObj, observedObj)
 			desiredObj.spec.paused = observedObj.spec.paused
-			return desiredObj
+			return desiredObj   
 			end`,
 					},
 				})
@@ -566,6 +566,21 @@ function ReflectStatus (observedObj)
 	})
 
 	ginkgo.Context("InterpreterOperation InterpretHealth testing", func() {
+		ginkgo.BeforeEach(func() {
+			customization = testhelper.NewResourceInterpreterCustomization(
+				"interpreter-customization"+rand.String(RandomStrLength),
+				configv1alpha1.CustomizationTarget{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+				},
+				configv1alpha1.CustomizationRules{
+					ReplicaRevision: &configv1alpha1.ReplicaRevision{
+						LuaScript: `function InterpretHealth(observedObj)
+							return (observedObj.status.updatedReplicas == observedObj.spec.replicas) and (observedObj.metadata.generation == observedObj.status.observedGeneration)
+                        end `,
+					},
+				})
+		})
 		ginkgo.It("InterpretHealth testing", func() {
 			resourceBindingName := names.GenerateBindingName(deployment.Kind, deployment.Name)
 
