@@ -20,7 +20,7 @@ import (
 	"github.com/karmada-io/karmada/pkg/util/names"
 )
 
-// GetDeployment get Deployment with dynamic client.
+// GetDeployment get Deployment.
 func GetDeployment(client kubernetes.Interface, namespace, name string) *appsv1.Deployment {
 	var deployment *appsv1.Deployment
 	ginkgo.By(fmt.Sprintf("Get Deployment(%s/%s)", namespace, name), func() {
