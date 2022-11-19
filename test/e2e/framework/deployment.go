@@ -20,10 +20,32 @@ import (
 	"github.com/karmada-io/karmada/pkg/util/names"
 )
 
+// GetDeployment get Deployment.
+func GetDeployment(client kubernetes.Interface, namespace, name string) *appsv1.Deployment {
+	var deployment *appsv1.Deployment
+	ginkgo.By(fmt.Sprintf("Get Deployment(%s/%s)", namespace, name), func() {
+		gomega.Eventually(func() error {
+			var err error
+			deployment, err = client.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+			return err
+		}, pollTimeout, pollInterval).ShouldNot(gomega.HaveOccurred())
+
+	})
+	return deployment
+}
+
 // CreateDeployment create Deployment.
 func CreateDeployment(client kubernetes.Interface, deployment *appsv1.Deployment) {
 	ginkgo.By(fmt.Sprintf("Creating Deployment(%s/%s)", deployment.Namespace, deployment.Name), func() {
 		_, err := client.AppsV1().Deployments(deployment.Namespace).Create(context.TODO(), deployment, metav1.CreateOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+}
+
+// UpdateDeployment create Deployment.
+func UpdateDeployment(client kubernetes.Interface, deployment *appsv1.Deployment) {
+	ginkgo.By(fmt.Sprintf("Update Deployment(%s/%s)", deployment.Namespace, deployment.Name), func() {
+		_, err := client.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 }
