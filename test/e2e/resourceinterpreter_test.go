@@ -511,7 +511,7 @@ function AggregateStatus(desiredObj, statusItems)
 				klog.Infof("UpdateDeployment memberDeploy %v", memberDeployment)
 				framework.UpdateDeployment(clusterClient, memberDeployment)
 
-				wantedReplicas := *deployment.Spec.Replicas * int32(len(framework.Clusters()))
+				wantedReplicas := *deployment.Spec.Replicas
 				klog.Infof("Waiting for deployment(%s/%s) collecting correctly status", deployment.Namespace, deployment.Name)
 				err := wait.PollImmediate(pollInterval, pollTimeout, func() (done bool, err error) {
 					currentDeployment := framework.GetDeployment(kubeClient, deployment.Namespace, deployment.Name)
@@ -585,7 +585,7 @@ function ReflectStatus (observedObj)
 				configv1alpha1.CustomizationRules{
 					ReplicaRevision: &configv1alpha1.ReplicaRevision{
 						LuaScript: `function InterpretHealth(observedObj)
-							return (observedObj.status.updatedReplicas == observedObj.spec.replicas) and (observedObj.metadata.generation == observedObj.status.observedGeneration)
+							return (observedObj.status.readyReplicas == observedObj.spec.replicas) and (observedObj.metadata.generation == observedObj.status.observedGeneration)
                         end `,
 					},
 				})
