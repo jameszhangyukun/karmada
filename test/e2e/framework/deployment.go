@@ -46,9 +46,7 @@ func CreateDeployment(client kubernetes.Interface, deployment *appsv1.Deployment
 func UpdateDeployment(client kubernetes.Interface, deployment *appsv1.Deployment) {
 	ginkgo.By(fmt.Sprintf("Update Deployment(%s/%s)", deployment.Namespace, deployment.Name), func() {
 		gomega.Eventually(func() error {
-			klog.Infof("deploy.go UpdateDeployment %v", deployment)
 			_, err := client.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{})
-			klog.Infof("deploy.go UpdateDeployment err %v", err)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			return err
 		}, pollTimeout, pollInterval).ShouldNot(gomega.HaveOccurred())

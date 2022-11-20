@@ -423,117 +423,115 @@ end`,
 		})
 	})
 
-	//	ginkgo.Context("InterpreterOperation Retain testing", func() {
-	//		var waitTime time.Duration
-	//		var updatedPaused bool
-	//
-	//		ginkgo.BeforeEach(func() {
-	//			waitTime = 5 * time.Second
-	//			updatedPaused = true
-	//			customization = testhelper.NewResourceInterpreterCustomization(
-	//				"interpreter-customization"+rand.String(RandomStrLength),
-	//				configv1alpha1.CustomizationTarget{
-	//					APIVersion: "apps/v1",
-	//					Kind:       "Deployment",
-	//				},
-	//
-	//				configv1alpha1.CustomizationRules{
-	//					Retention: &configv1alpha1.LocalValueRetention{
-	//						LuaScript: `function Retain(desiredObj, observedObj)
-	//			desiredObj.spec.paused = observedObj.spec.paused
-	//			return desiredObj
-	//			end`,
-	//					},
-	//				})
-	//		})
-	//
-	//		ginkgo.It("Retain testing", func() {
-	//			framework.WaitDeploymentPresentOnClustersFitWith([]string{targetCluster}, deployment.Namespace, deployment.Name,
-	//				func(deployment *appsv1.Deployment) bool {
-	//					return true
-	//				})
-	//			ginkgo.By("update workload's spec.paused to true", func() {
-	//				clusterClient := framework.GetClusterClient(targetCluster)
-	//				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
-	//
-	//				memberDeploy := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
-	//				memberDeploy.Spec.Paused = updatedPaused
-	//				klog.Infof("Update memberDeploy %v", memberDeploy)
-	//				framework.UpdateDeployment(clusterClient, memberDeploy)
-	//			})
-	//
-	//			// Wait executeController to reconcile then check if it is retained
-	//			time.Sleep(waitTime)
-	//			ginkgo.By("check if workload's spec.paused is retained", func() {
-	//				clusterClient := framework.GetClusterClient(targetCluster)
-	//				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
-	//
-	//				gomega.Eventually(func(g gomega.Gomega) (bool, error) {
-	//					memberDeployment := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
-	//					klog.Infof("Get memberDeploy %v", memberDeployment)
-	//					return memberDeployment.Spec.Paused, nil
-	//				}, pollTimeout, pollInterval).Should(gomega.Equal(updatedPaused))
-	//			})
-	//		})
-	//	})
-	//	ginkgo.Context("InterpreterOperation AggregateStatus testing", func() {
-	//		ginkgo.BeforeEach(func() {
-	//			customization = testhelper.NewResourceInterpreterCustomization(
-	//				"interpreter-customization"+rand.String(RandomStrLength),
-	//				configv1alpha1.CustomizationTarget{
-	//					APIVersion: "apps/v1",
-	//					Kind:       "Deployment",
-	//				},
-	//				configv1alpha1.CustomizationRules{
-	//					StatusAggregation: &configv1alpha1.StatusAggregation{
-	//						LuaScript: `
-	//function AggregateStatus(desiredObj, statusItems)
-	//print(statusItems[i].status.readyReplicas)
-	//			if  desiredObj.status.readyReplicas  == nil then
-	//											   desiredObj.status.readyReplicas = 0
+	ginkgo.Context("InterpreterOperation Retain testing", func() {
+		var waitTime time.Duration
+		var updatedPaused bool
+
+		ginkgo.BeforeEach(func() {
+			waitTime = 5 * time.Second
+			updatedPaused = true
+			customization = testhelper.NewResourceInterpreterCustomization(
+				"interpreter-customization"+rand.String(RandomStrLength),
+				configv1alpha1.CustomizationTarget{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+				},
+
+				configv1alpha1.CustomizationRules{
+					Retention: &configv1alpha1.LocalValueRetention{
+						LuaScript: `function Retain(desiredObj, observedObj)
+				desiredObj.spec.paused = observedObj.spec.paused
+				return desiredObj
+				end`,
+					},
+				})
+		})
+
+		ginkgo.It("Retain testing", func() {
+			framework.WaitDeploymentPresentOnClustersFitWith([]string{targetCluster}, deployment.Namespace, deployment.Name,
+				func(deployment *appsv1.Deployment) bool {
+					return true
+				})
+			ginkgo.By("update workload's spec.paused to true", func() {
+				clusterClient := framework.GetClusterClient(targetCluster)
+				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
+
+				memberDeploy := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
+				memberDeploy.Spec.Paused = updatedPaused
+				klog.Infof("Update memberDeploy %v", memberDeploy)
+				framework.UpdateDeployment(clusterClient, memberDeploy)
+			})
+
+			// Wait executeController to reconcile then check if it is retained
+			time.Sleep(waitTime)
+			ginkgo.By("check if workload's spec.paused is retained", func() {
+				clusterClient := framework.GetClusterClient(targetCluster)
+				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
+
+				gomega.Eventually(func(g gomega.Gomega) (bool, error) {
+					memberDeployment := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
+					klog.Infof("Get memberDeploy %v", memberDeployment)
+					return memberDeployment.Spec.Paused, nil
+				}, pollTimeout, pollInterval).Should(gomega.Equal(updatedPaused))
+			})
+		})
+	})
+	//ginkgo.Context("InterpreterOperation AggregateStatus testing", func() {
+	//	ginkgo.BeforeEach(func() {
+	//		customization = testhelper.NewResourceInterpreterCustomization(
+	//			"interpreter-customization"+rand.String(RandomStrLength),
+	//			configv1alpha1.CustomizationTarget{
+	//				APIVersion: "apps/v1",
+	//				Kind:       "Deployment",
+	//			},
+	//			configv1alpha1.CustomizationRules{
+	//				StatusAggregation: &configv1alpha1.StatusAggregation{
+	//					LuaScript: `
+	//					function AggregateStatus(desiredObj, statusItems)
+	//									if  desiredObj.status == nil then
+	//											   desiredObj.status={}
 	//									end
+	//										desiredObj.status.readyReplicas = 0
 	//										for i = 1, #statusItems do
 	//											print(statusItems[i].status.readyReplicas)
+	//											print(desiredObj.status.readyReplicas)
 	//											if  statusItems[i].status.readyReplicas  == nil then
 	//											   statusItems[i].status.readyReplicas = 0
-	//												end
+	//											 end
 	//											desiredObj.status.readyReplicas = desiredObj.status.readyReplicas + statusItems[i].status.readyReplicas
 	//										end
 	//										return desiredObj
 	//									end`,
-	//					},
-	//				})
-	//		})
-	//		ginkgo.It("AggregateStatus testing", func() {
-	//			framework.WaitDeploymentPresentOnClustersFitWith([]string{targetCluster}, deployment.Namespace, deployment.Name,
-	//				func(deployment *appsv1.Deployment) bool {
-	//					return true
-	//				})
-	//			ginkgo.By("check whether the deployment status can be correctly collected", func() {
-	//				// Simulate the workload resource controller behavior, update the status information of workload resources of member clusters manually.
-	//				clusterClient := framework.GetClusterClient(targetCluster)
-	//				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
-	//
-	//				memberDeployment := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
-	//				memberDeployment.Status.ReadyReplicas = *deployment.Spec.Replicas
-	//				klog.Infof("UpdateDeployment memberDeploy %v", memberDeployment)
-	//				framework.UpdateDeployment(clusterClient, memberDeployment)
-	//
-	//				wantedReplicas := *deployment.Spec.Replicas
-	//				klog.Infof("Waiting for deployment(%s/%s) collecting correctly status", deployment.Namespace, deployment.Name)
-	//				err := wait.PollImmediate(pollInterval, pollTimeout, func() (done bool, err error) {
-	//					currentDeployment := framework.GetDeployment(kubeClient, deployment.Namespace, deployment.Name)
-	//					klog.Infof("deployment(%s/%s) readyReplicas: %d, wanted replicas: %d", deployment.Namespace, deployment.Name, currentDeployment.Status.ReadyReplicas, wantedReplicas)
-	//					if currentDeployment.Status.ReadyReplicas == wantedReplicas {
-	//						return true, nil
-	//					}
-	//
-	//					return false, nil
-	//				})
-	//				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	//				},
 	//			})
+	//	})
+	//	ginkgo.It("AggregateStatus testing", func() {
+	//		framework.WaitDeploymentPresentOnClustersFitWith([]string{targetCluster}, deployment.Namespace, deployment.Name,
+	//			func(deployment *appsv1.Deployment) bool {
+	//				return true
+	//			})
+	//		ginkgo.By("check whether the deployment status can be correctly collected", func() {
+	//			// Simulate the workload resource controller behavior, update the status information of workload resources of member clusters manually.
+	//			clusterClient := framework.GetClusterClient(targetCluster)
+	//			gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
+	//
+	//			framework.RemoveDeployment(clusterClient, deployment.Namespace, deployment.Name)
+	//
+	//			wantedReplicas := *deployment.Spec.Replicas
+	//			klog.Infof("Waiting for deployment(%s/%s) collecting correctly status", deployment.Namespace, deployment.Name)
+	//			err := wait.PollImmediate(pollInterval, pollTimeout, func() (done bool, err error) {
+	//				currentDeployment := framework.GetDeployment(kubeClient, deployment.Namespace, deployment.Name)
+	//				klog.Infof("deployment(%s/%s) readyReplicas: %d, wanted replicas: %d", deployment.Namespace, deployment.Name, currentDeployment.Status.ReadyReplicas, wantedReplicas)
+	//				if currentDeployment.Status.ReadyReplicas == wantedReplicas {
+	//					return true, nil
+	//				}
+	//
+	//				return false, nil
+	//			})
+	//			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	//		})
 	//	})
+	//})
 
 	//	ginkgo.Context("InterpreterOperation InterpretStatus testing", func() {
 	//		ginkgo.BeforeEach(func() {
@@ -596,7 +594,7 @@ end`,
 							print(observedObj.status.readyReplicas)
 							print(observedObj.spec.replicas)
 							return observedObj.status.readyReplicas == observedObj.spec.replicas
-	                   end `,
+	                end `,
 					},
 				})
 		})
@@ -612,7 +610,6 @@ end`,
 				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
 				memberDeployment := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
 				memberDeployment.Status.ReadyReplicas = readyReplicas
-				klog.Infof("memberDeployment %v", memberDeployment)
 				framework.UpdateDeployment(clusterClient, memberDeployment)
 			}
 
@@ -626,7 +623,6 @@ end`,
 					}
 
 					for _, status := range rb.Status.AggregatedStatus {
-						klog.Infof("AggregatedStatus %v", status)
 						klog.Infof("resourceBinding(%s/%s) on cluster %s got %s, want %s ", deployment.Namespace, resourceBindingName, status.ClusterName, status.Health, result)
 						if status.Health != result {
 							return false, nil
@@ -642,7 +638,7 @@ end`,
 			})
 
 			ginkgo.By("deployment unhealthy", func() {
-				SetReadyReplicas(1)
+				SetReadyReplicas(0)
 				gomega.Eventually(CheckResult(workv1alpha2.ResourceUnhealthy), pollTimeout, pollInterval).Should(gomega.BeTrue())
 			})
 		})
