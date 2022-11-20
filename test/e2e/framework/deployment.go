@@ -29,7 +29,6 @@ func GetDeployment(client kubernetes.Interface, namespace, name string) *appsv1.
 			deployment, err = client.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 			return err
 		}, pollTimeout, pollInterval).ShouldNot(gomega.HaveOccurred())
-
 	})
 	return deployment
 }
@@ -47,6 +46,17 @@ func UpdateDeployment(client kubernetes.Interface, deployment *appsv1.Deployment
 	ginkgo.By(fmt.Sprintf("Update Deployment(%s/%s)", deployment.Namespace, deployment.Name), func() {
 		gomega.Eventually(func() error {
 			_, err := client.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			return err
+		}, pollTimeout, pollInterval).ShouldNot(gomega.HaveOccurred())
+	})
+}
+
+// UpdateDeploymentStatus create Deployment.
+func UpdateDeploymentStatus(client kubernetes.Interface, deployment *appsv1.Deployment) {
+	ginkgo.By(fmt.Sprintf("Update Deployment(%s/%s) Status", deployment.Namespace, deployment.Name), func() {
+		gomega.Eventually(func() error {
+			_, err := client.AppsV1().Deployments(deployment.Namespace).UpdateStatus(context.TODO(), deployment, metav1.UpdateOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			return err
 		}, pollTimeout, pollInterval).ShouldNot(gomega.HaveOccurred())
