@@ -222,7 +222,9 @@ func (vm VM) AggregateStatus(object *unstructured.Unstructured, items []workv1al
 	l := lua.NewState(lua.Options{
 		SkipOpenLibs: !vm.UseOpenLibs,
 	})
-	klog.Infof("object ", object)
+	klog.Infof("object %v", object.Object)
+	klog.Infof("script %v", script)
+
 	defer l.Close()
 	// Opens table library to allow access to functions to manipulate tables
 	err := vm.setLib(l)
@@ -275,7 +277,7 @@ func (vm VM) AggregateStatus(object *unstructured.Unstructured, items []workv1al
 func (vm VM) InterpretHealth(object *unstructured.Unstructured, script string) (bool, error) {
 	klog.Infof("InterpretHealth")
 	klog.Infof("script %v", script)
-	klog.Infof("object %v", object)
+	klog.Infof("object %v", object.Object)
 
 	l := lua.NewState(lua.Options{
 		SkipOpenLibs: !vm.UseOpenLibs,
