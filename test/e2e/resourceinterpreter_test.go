@@ -634,10 +634,10 @@ function ReflectStatus (observedObj)
 				gomega.Eventually(CheckResult(workv1alpha2.ResourceHealthy), pollTimeout, pollInterval).Should(gomega.BeTrue())
 			})
 
-			ginkgo.By("deployment unhealthy", func() {
-				SetReadyReplicas(1)
-				gomega.Eventually(CheckResult(workv1alpha2.ResourceUnhealthy), pollTimeout, pollInterval).Should(gomega.BeTrue())
-			})
+			//ginkgo.By("deployment unhealthy", func() {
+			//	SetReadyReplicas(1)
+			//	gomega.Eventually(CheckResult(workv1alpha2.ResourceUnhealthy), pollTimeout, pollInterval).Should(gomega.BeTrue())
+			//})
 		})
 	})
 })
