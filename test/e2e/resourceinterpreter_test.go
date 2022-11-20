@@ -598,6 +598,7 @@ function ReflectStatus (observedObj)
 			resourceBindingName := names.GenerateBindingName(deployment.Kind, deployment.Name)
 
 			SetReadyReplicas := func(readyReplicas int32) {
+
 				clusterClient := framework.GetClusterClient(targetCluster)
 				gomega.Expect(clusterClient).ShouldNot(gomega.BeNil())
 				memberDeployment := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
