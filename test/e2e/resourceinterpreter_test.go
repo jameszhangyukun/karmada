@@ -438,7 +438,7 @@ end`,
 				},
 
 				configv1alpha1.CustomizationRules{
-					ReplicaRevision: &configv1alpha1.ReplicaRevision{
+					Retention: &configv1alpha1.LocalValueRetention{
 						LuaScript: `function Retain(desiredObj, observedObj)
 			desiredObj.spec.paused = observedObj.spec.paused
 			return desiredObj   
@@ -485,7 +485,7 @@ end`,
 					Kind:       "Deployment",
 				},
 				configv1alpha1.CustomizationRules{
-					ReplicaRevision: &configv1alpha1.ReplicaRevision{
+					StatusAggregation: &configv1alpha1.StatusAggregation{
 						LuaScript: `
 function AggregateStatus(desiredObj, statusItems) 
 										for i = 1, #statusItems do    
@@ -536,7 +536,7 @@ function AggregateStatus(desiredObj, statusItems)
 					Kind:       "Deployment",
 				},
 				configv1alpha1.CustomizationRules{
-					ReplicaRevision: &configv1alpha1.ReplicaRevision{
+					StatusReflection: &configv1alpha1.StatusReflection{
 						LuaScript: `
 function ReflectStatus (observedObj)
 						if observedObj.status == nil then	
@@ -558,13 +558,13 @@ function ReflectStatus (observedObj)
 
 			memberDeployment := framework.GetDeployment(clusterClient, deployment.Namespace, deployment.Name)
 			memberDeployment.Status.ReadyReplicas = *deployment.Spec.Replicas
-			klog.Infof("memberDeployment %v", memberDeployment)
+			klog.Infof("InterpretStatus memberDeployment %v", memberDeployment)
 			framework.UpdateDeployment(clusterClient, memberDeployment)
 
 			gomega.Eventually(func(g gomega.Gomega) (bool, error) {
 				deploy, err := kubeClient.AppsV1().Deployments(deployment.Namespace).Get(context.TODO(), deployment.Name, metav1.GetOptions{})
 				g.Expect(err).NotTo(gomega.HaveOccurred())
-				klog.Infof("deploy %v", deploy)
+				klog.Infof("deploy.Status %v", deploy.Status)
 				if deploy.Status.ReadyReplicas == *deploy.Spec.Replicas && len(deploy.Status.Conditions) == 0 {
 					return true, nil
 				}
@@ -583,9 +583,11 @@ function ReflectStatus (observedObj)
 					Kind:       "Deployment",
 				},
 				configv1alpha1.CustomizationRules{
-					ReplicaRevision: &configv1alpha1.ReplicaRevision{
+					HealthInterpretation: &configv1alpha1.HealthInterpretation{
 						LuaScript: `function InterpretHealth(observedObj)
-							return (observedObj.status.readyReplicas == observedObj.spec.replicas) and (observedObj.metadata.generation == observedObj.status.observedGeneration)
+							print(observedObj.status.readyReplicas)
+							print(observedObj.spec.replicas)
+							return observedObj.status.readyReplicas == observedObj.spec.replicas
                         end `,
 					},
 				})

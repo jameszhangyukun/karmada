@@ -164,6 +164,9 @@ func (vm VM) Retain(desired *unstructured.Unstructured, observed *unstructured.U
 	l := lua.NewState(lua.Options{
 		SkipOpenLibs: !vm.UseOpenLibs,
 	})
+	klog.Infof("Retain script %v", script)
+	klog.Infof("desired %v", desired.Object)
+	klog.Infof("observed %v", observed.Object)
 	defer l.Close()
 	// Opens table library to allow access to functions to manipulate tables
 	err = vm.setLib(l)
@@ -195,6 +198,7 @@ func (vm VM) Retain(desired *unstructured.Unstructured, observed *unstructured.U
 	if err != nil {
 		return
 	}
+
 	err = l.CallByParam(lua.P{Fn: retainLuaFunc, NRet: 1, Protect: true}, args...)
 	if err != nil {
 		return nil, err
@@ -207,6 +211,7 @@ func (vm VM) Retain(desired *unstructured.Unstructured, observed *unstructured.U
 		if err != nil {
 			return nil, err
 		}
+		klog.Infof("retainResult %v", retainResult.Object)
 		return retainResult, nil
 	}
 	return nil, fmt.Errorf("expect the returned requires type is table but got %s", luaResult.Type())
@@ -217,6 +222,7 @@ func (vm VM) AggregateStatus(object *unstructured.Unstructured, items []workv1al
 	l := lua.NewState(lua.Options{
 		SkipOpenLibs: !vm.UseOpenLibs,
 	})
+	klog.Infof("object ", object)
 	defer l.Close()
 	// Opens table library to allow access to functions to manipulate tables
 	err := vm.setLib(l)
@@ -267,6 +273,10 @@ func (vm VM) AggregateStatus(object *unstructured.Unstructured, items []workv1al
 
 // InterpretHealth returns the health state of the object by lua.
 func (vm VM) InterpretHealth(object *unstructured.Unstructured, script string) (bool, error) {
+	klog.Infof("InterpretHealth")
+	klog.Infof("script %v", script)
+	klog.Infof("object %v", object)
+
 	l := lua.NewState(lua.Options{
 		SkipOpenLibs: !vm.UseOpenLibs,
 	})
@@ -305,6 +315,8 @@ func (vm VM) InterpretHealth(object *unstructured.Unstructured, script string) (
 	var health bool
 	luaResult := l.Get(l.GetTop())
 	health, err = ConvertLuaResultToBool(luaResult)
+	klog.Infof("health %v", health)
+	klog.Infof("error %v", err)
 	if err != nil {
 		return false, err
 	}
@@ -313,6 +325,7 @@ func (vm VM) InterpretHealth(object *unstructured.Unstructured, script string) (
 
 // ReflectStatus returns the status of the object by lua.
 func (vm VM) ReflectStatus(object *unstructured.Unstructured, script string) (status *runtime.RawExtension, err error) {
+	klog.Infof("script %s", script)
 	l := lua.NewState(lua.Options{
 		SkipOpenLibs: !vm.UseOpenLibs,
 	})
@@ -355,6 +368,8 @@ func (vm VM) ReflectStatus(object *unstructured.Unstructured, script string) (st
 
 	status = &runtime.RawExtension{}
 	err = ConvertLuaResultInto(luaStatusResult, status)
+	klog.Infof("result %v", status)
+	klog.Infof("err  %v", err)
 	return status, err
 }
 
